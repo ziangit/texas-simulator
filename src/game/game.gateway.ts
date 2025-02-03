@@ -13,6 +13,14 @@ import { Player } from './models/player.model';
 export class GameGateway {
   constructor(private readonly gameService: GameService) { }
 
+  @SubscribeMessage('test')
+  handleTest(@MessageBody() data: any, @ConnectedSocket() client: Socket) {
+    console.log('Received test event:', data);
+    // Emit a response back to the client
+    client.emit('testResponse', { message: 'Hello from NestJS' });
+  }
+
+
   @SubscribeMessage('joinGame')
   handleJoinGame(
     @MessageBody() data: { name: string },
@@ -33,7 +41,9 @@ export class GameGateway {
   handleStartGame(@ConnectedSocket() client: Socket) {
     try {
       this.gameService.startGame();
+      // Emit to all connected clients, including the sender
       client.broadcast.emit('gameUpdate', this.gameService.getGameState());
+      // client.server.emit('gameUpdate', this.gameService.getGameState());
       return { event: 'gameStarted', state: this.gameService.getGameState() };
     } catch (error) {
       return { event: 'error', message: error.message };
