@@ -11,30 +11,77 @@ import { Player } from './models/player.model';
 
 @WebSocketGateway({ cors: true })
 export class GameGateway {
-  constructor(private readonly gameService: GameService) {}
+  constructor(private readonly gameService: GameService) { }
 
   @SubscribeMessage('joinGame')
   handleJoinGame(
     @MessageBody() data: { name: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const newPlayer = new Player(data.name, client.id);
-    this.gameService.addPlayer(newPlayer);
-    // Broadcast updated game state to all connected clients
-    client.broadcast.emit('gameUpdate', this.gameService);
-    return { event: 'joined', data: newPlayer };
+    try {
+      const newPlayer = new Player(data.name, client.id);
+      this.gameService.addPlayer(newPlayer);
+      // Broadcast updated game state to all connected clients
+      client.broadcast.emit('gameUpdate', this.gameService.getGameState());
+      return { event: 'joined', data: newPlayer };
+    } catch (error) {
+      return { event: 'error', message: error.message };
+    }
   }
 
   @SubscribeMessage('startGame')
   handleStartGame(@ConnectedSocket() client: Socket) {
     try {
       this.gameService.startGame();
-      client.broadcast.emit('gameUpdate', this.gameService);
-      return { event: 'gameStarted' };
+      client.broadcast.emit('gameUpdate', this.gameService.getGameState());
+      return { event: 'gameStarted', state: this.gameService.getGameState() };
     } catch (error) {
       return { event: 'error', message: error.message };
     }
   }
 
-  // Add more event handlers (bet, fold, etc.)
+  @SubscribeMessage('dealFlop')
+  handleDealFlop(@ConnectedSocket() client: Socket) {
+    try {
+      this.gameService.dealFlop();
+      client.broadcast.emit('gameUpdate', this.gameService.getGameState());
+      return { event: 'flopDealt', state: this.gameService.getGameState() };
+    } catch (error) {
+      return { event: 'error', message: error.message };
+    }
+  }
+
+  @SubscribeMessage('dealTurn')
+  handleDealTurn(@ConnectedSocket() client: Socket) {
+    try {
+      this.gameService.dealTurn();
+      client.broadcast.emit('gameUpdate', this.gameService.getGameState());
+      return { event: 'turnDealt', state: this.gameService.getGameState() };
+    } catch (error) {
+      return { event: 'error', message: error.message };
+    }
+  }
+
+  @SubscribeMessage('dealRiver')
+  handleDealRiver(@ConnectedSocket() client: Socket) {
+    try {
+      this.gameService.dealRiver();
+      client.broadcast.emit('gameUpdate', this.gameService.getGameState());
+      return { event: 'riverDealt', state: this.gameService.getGameState() };
+    } catch (error) {
+      return { event: 'error', message: error.message };
+    }
+  }
+
+  @SubscribeMessage('showdown')
+  handleShowdown(@ConnectedSocket() client: Socket) {
+    try {
+      this.gameService.showdown();
+      client.broadcast.emit('gameUpdate', this.gameService.getGameState());
+      return { event: 'showdown', state: this.gameService.getGameState() };
+    } catch (error) {
+      return { event: 'error', message: error.message };
+    }
+  }
+
 }

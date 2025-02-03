@@ -2,6 +2,7 @@
 import { Controller, Get, Post, Body } from '@nestjs/common';
 import { GameService } from './game.service';
 import { Player } from './models/player.model';
+import { JoinGameDto } from './dto/join-game.dto';
 
 @Controller('game')
 export class GameController {
@@ -14,9 +15,9 @@ export class GameController {
     }
 
     @Post('join')
-    joinGame(@Body() payload: { name: string; id: string }) {
-        // Add a player to the game using the provided name and id.
+    joinGame(@Body() payload: JoinGameDto) {
         const newPlayer = new Player(payload.name, payload.id);
         return this.gameService.addPlayer(newPlayer);
     }
+
 }

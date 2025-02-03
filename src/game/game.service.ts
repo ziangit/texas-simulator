@@ -20,13 +20,18 @@ export class GameService {
     this.deck.shuffle();
     this.players = [];
     this.gameState = {
-      stage: 'waiting', // could be 'pre-flop', 'flop', 'turn', 'river', 'showdown'
+      stage: 'waiting', // 'pre-flop', 'flop', 'turn', 'river', 'showdown'
       communityCards: [],
       pot: 0,
+      players: this.players,
     };
   }
 
   addPlayer(player: Player): Player {
+    // If game is already started, prevent joining
+    if (this.gameState.stage !== 'waiting') {
+      throw new Error('Cannot join after game has started');
+    }
     this.players.push(player);
     return player;
   }
@@ -36,7 +41,7 @@ export class GameService {
       throw new Error('Need at least 2 players to start');
     }
 
-    // Reset the deck and shuffle
+    // Reset deck and deal two cards to each player (Texas Hold'em specific)
     this.deck = new Deck();
     this.deck.shuffle();
 
@@ -47,13 +52,61 @@ export class GameService {
 
     // Set game stage to pre-flop
     this.gameState.stage = 'pre-flop';
+    this.gameState.communityCards = [];
 
     // Initialize pot and any other game variables
     this.gameState.pot = 0;
 
-    // Optionally, add more game logic here for betting rounds, etc.
+    // Set currentTurn
+    this.gameState.currentTurn = this.players[0].id;
   }
 
+
+  // Progress the game to the next stage:
+  dealFlop() {
+    if (this.gameState.stage !== 'pre-flop') {
+      throw new Error('Flop can only be dealt after pre-flop');
+    }
+    // Burn a card (optional)
+    this.deck.deal(1);
+    // Deal 3 community cards
+    const flop = this.deck.deal(3);
+    this.gameState.communityCards.push(...flop);
+    this.gameState.stage = 'flop';
+  }
+
+  dealTurn() {
+    if (this.gameState.stage !== 'flop') {
+      throw new Error('Turn can only be dealt after the flop');
+    }
+    // Burn a card (optional)
+    this.deck.deal(1);
+    // Deal one card
+    const turn = this.deck.deal(1);
+    this.gameState.communityCards.push(...turn);
+    this.gameState.stage = 'turn';
+  }
+
+  dealRiver() {
+    if (this.gameState.stage !== 'turn') {
+      throw new Error('River can only be dealt after the turn');
+    }
+    // Burn a card (optional)
+    this.deck.deal(1);
+    // Deal one card
+    const river = this.deck.deal(1);
+    this.gameState.communityCards.push(...river);
+    this.gameState.stage = 'river';
+  }
+
+  // When both players have taken actions, move to showdown:
+  showdown() {
+    if (this.gameState.stage !== 'river') {
+      throw new Error('Showdown can only happen after the river');
+    }
+    this.gameState.stage = 'showdown';
+    // Winner calculation could be added here; for now, just reveal hands.
+  }
   /**
  * Returns the current game state.
  */
