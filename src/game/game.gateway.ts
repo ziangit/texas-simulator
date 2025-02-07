@@ -25,6 +25,50 @@ export class GameGateway {
     this.server.emit('testResponse', { message: 'Hello from NestJS' })
   }
 
+  @SubscribeMessage('requestStartGame')
+  handleRequestStartGame(@ConnectedSocket() client: Socket) {
+    try {
+      console.log(`Player ${client.id} requested to restart the game.`);
+
+      // Automatically record the vote for the initiator
+      this.gameService.recordRestartVote(client.id, true);
+
+      // Notify all other players about the restart request
+      client.broadcast.emit('startGameRequest', { requester: client.id });
+
+      return { event: 'startGameRequested', requester: client.id };
+    } catch (error) {
+      return { event: 'error', message: error.message };
+    }
+  }
+
+  @SubscribeMessage('respondStartGame')
+  handleRespondStartGame(
+    @MessageBody() data: { accept: boolean },
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      // Store the player's response
+      this.gameService.recordRestartVote(client.id, data.accept);
+
+      // Send vote update with correct structure
+      const response = { playerId: client.id, accepted: data.accept };
+      this.server.emit('restartVoteRecorded', response);
+
+      // Check if all players have voted and reached a consensus
+      if (this.gameService.allPlayersAgreed()) {
+        this.gameService.startGame();
+        this.gameService.resetVotes();
+        this.server.emit('gameUpdate', this.gameService.getGameState());
+        return { event: 'gameStarted', state: this.gameService.getGameState() };
+      }
+
+      return { event: 'restartVoteRecorded', playerId: client.id, accepted: data.accept };
+    } catch (error) {
+      return { event: 'error', message: error.message };
+    }
+  }
+
 
   @SubscribeMessage('joinGame')
   handleJoinGame(

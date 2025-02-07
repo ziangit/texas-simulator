@@ -10,6 +10,7 @@ export class GameService {
   private deck: Deck;
   private players: Player[] = [];
   private gameState: GameState;
+  private disconnectedPlayers: Map<string, Player> = new Map(); // Track disconnected players
 
   constructor() {
     this.resetGame();
@@ -19,6 +20,7 @@ export class GameService {
     this.deck = new Deck();
     this.deck.shuffle();
     this.players = [];
+    this.disconnectedPlayers.clear(); // Reset disconnected players on a new game
     this.gameState = {
       stage: 'waiting', // 'pre-flop', 'flop', 'turn', 'river', 'showdown'
       communityCards: [],
@@ -114,5 +116,30 @@ export class GameService {
     return this.gameState;
   }
 
-  // More methods for handling bets, folding, and progressing the game
+  private restartVotes: Map<string, boolean> = new Map(); // Track votes (playerId -> accept/reject)
+
+  recordRestartVote(playerId: string, accept: boolean) {
+    console.log(`Player ${playerId} voted: ${accept}`);
+    this.restartVotes.set(playerId, accept);
+  }
+
+  allPlayersAgreed(): boolean {
+    console.log("Checking if all players agreed...");
+    console.log("Votes so far:", this.restartVotes);
+    console.log("Total Players:", this.players.length);
+
+    if (this.players.length === 0) return false;
+
+    // All players must have voted, and all must agree
+    return (
+      this.restartVotes.size === this.players.length &&
+      Array.from(this.restartVotes.values()).every(vote => vote === true)
+    );
+  }
+
+  resetVotes() {
+    console.log("Resetting votes...");
+    this.restartVotes.clear();
+  }
+
 }
