@@ -2,15 +2,14 @@
 import { Card } from './card.model';
 
 export class Player {
-  public id: string;
-  public name: string;
-  public chips: number;
-  public hand: Card[];
+  id: string;
+  name: string;
+  chips: number = 100; // Start with 100 chips
+  hand: Card[] = [];
+  hasActed: boolean = false; // Track if player has made a move in the round
 
   constructor(name: string, id: string) {
     this.name = name;
     this.id = id;
-    this.chips = 1000; // Starting chips (adjust as needed)
-    this.hand = [];
   }
 }

@@ -5,16 +5,38 @@ export class Deck {
   public cards: Card[];
 
   constructor() {
+    this.initializeDeck();
+  }
+
+  /** Initialize a standard 52-card deck */
+  private initializeDeck() {
     const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
-    const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+    const values = [
+      { label: '2', value: 2 },
+      { label: '3', value: 3 },
+      { label: '4', value: 4 },
+      { label: '5', value: 5 },
+      { label: '6', value: 6 },
+      { label: '7', value: 7 },
+      { label: '8', value: 8 },
+      { label: '9', value: 9 },
+      { label: '10', value: 10 },
+      { label: 'J', value: 11 },
+      { label: 'Q', value: 12 },
+      { label: 'K', value: 13 },
+      { label: 'A', value: 14 } // Ace is the highest value
+    ];
+
     this.cards = [];
+
     for (const suit of suits) {
-      for (const value of values) {
-        this.cards.push(new Card(suit, value));
+      for (const { label, value } of values) {
+        this.cards.push(new Card(suit, value, label)); // Store both numeric value & label
       }
     }
   }
 
+  /** Shuffle the deck using Fisher-Yates algorithm */
   shuffle() {
     for (let i = this.cards.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -22,7 +44,17 @@ export class Deck {
     }
   }
 
+  /** Deal a specific number of cards */
   deal(num: number): Card[] {
+    if (this.cards.length < num) {
+      throw new Error('Not enough cards left in the deck');
+    }
     return this.cards.splice(0, num);
+  }
+
+  /** Reset the deck (for a new game) */
+  resetDeck() {
+    this.initializeDeck();
+    this.shuffle();
   }
 }

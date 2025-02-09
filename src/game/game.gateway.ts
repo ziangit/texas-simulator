@@ -101,6 +101,28 @@ export class GameGateway {
     }
   }
 
+  @SubscribeMessage('bet')
+  handleBet(
+    @MessageBody() data: { action: 'fold' | 'call' | 'raise' | 'check', amount?: number },
+    @ConnectedSocket() client: Socket
+  ) {
+    try {
+      const playerId = client.id;
+      const gameState = this.gameService.getGameState();
+
+      if (gameState.stage === 'pre-flop' && data.action === 'check') {
+        throw new Error("You cannot check on the first round. Call, Raise, or Fold.");
+      }
+
+      this.gameService.placeBet(playerId, data.action, data.amount);
+      this.server.emit('gameUpdate', this.gameService.getGameState());
+    } catch (error) {
+      client.emit('error', { message: error.message });
+    }
+  }
+
+
+
   @SubscribeMessage('dealFlop')
   handleDealFlop(@ConnectedSocket() client: Socket) {
     try {
