@@ -15,14 +15,14 @@ export class GameGateway {
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly gameService: GameService) { }
+  constructor(private readonly gameService: GameService) {}
 
   @SubscribeMessage('test')
   handleTest(@MessageBody() data: any, @ConnectedSocket() client: Socket) {
     console.log('Received test event:', data);
     // Emit a response back to the client
     // client.emit('testResponse', { message: 'Hello from NestJS' });
-    this.server.emit('testResponse', { message: 'Hello from NestJS' })
+    this.server.emit('testResponse', { message: 'Hello from NestJS' });
   }
 
   @SubscribeMessage('requestStartGame')
@@ -57,18 +57,23 @@ export class GameGateway {
 
       // Check if all players have voted and reached a consensus
       if (this.gameService.allPlayersAgreed()) {
+        this.gameService.restartGame(); // Fully reset before starting
+
         this.gameService.startGame();
         this.gameService.resetVotes();
         this.server.emit('gameUpdate', this.gameService.getGameState());
         return { event: 'gameStarted', state: this.gameService.getGameState() };
       }
 
-      return { event: 'restartVoteRecorded', playerId: client.id, accepted: data.accept };
+      return {
+        event: 'restartVoteRecorded',
+        playerId: client.id,
+        accepted: data.accept,
+      };
     } catch (error) {
       return { event: 'error', message: error.message };
     }
   }
-
 
   @SubscribeMessage('joinGame')
   handleJoinGame(
@@ -103,15 +108,18 @@ export class GameGateway {
 
   @SubscribeMessage('bet')
   handleBet(
-    @MessageBody() data: { action: 'fold' | 'call' | 'raise' | 'check', amount?: number },
-    @ConnectedSocket() client: Socket
+    @MessageBody()
+    data: { action: 'fold' | 'call' | 'raise' | 'check'; amount?: number },
+    @ConnectedSocket() client: Socket,
   ) {
     try {
       const playerId = client.id;
       const gameState = this.gameService.getGameState();
 
       if (gameState.stage === 'pre-flop' && data.action === 'check') {
-        throw new Error("You cannot check on the first round. Call, Raise, or Fold.");
+        throw new Error(
+          'You cannot check on the first round. Call, Raise, or Fold.',
+        );
       }
 
       this.gameService.placeBet(playerId, data.action, data.amount);
@@ -120,8 +128,6 @@ export class GameGateway {
       client.emit('error', { message: error.message });
     }
   }
-
-
 
   @SubscribeMessage('dealFlop')
   handleDealFlop(@ConnectedSocket() client: Socket) {
@@ -172,5 +178,4 @@ export class GameGateway {
       return { event: 'error', message: error.message };
     }
   }
-
 }
